@@ -2,14 +2,20 @@ package org.craftedsw.tripservicekata.trip;
 
 import org.craftedsw.tripservicekata.exception.UserNotLoggedInException;
 import org.craftedsw.tripservicekata.user.User;
-import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.BDDMockito.given;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TripServiceTest {
 
 	public static final User GUEST_USER = null;
@@ -19,17 +25,14 @@ public class TripServiceTest {
 	private static final Trip TO_LONDON = new Trip();
 	private User REGISTERED_USER = new User();
 
-	private TripService tripService;
-
-
-	@Before
-	public void initialise() {
-		tripService = new TestableTripService();
-	}
+	@Mock
+	private TripDAO tripDAO;
+	@InjectMocks @Spy
+	private TripService tripService = new TripService();
 
 	@Test(expected = UserNotLoggedInException.class) public void
     should_throw_an_exception_when_user_is_not_logged_in() {
-		tripService.getTripsByUser(UNSED_USER, GUEST_USER);
+		tripService.getFriendTrips(UNSED_USER, GUEST_USER);
 	}
 
 
@@ -40,7 +43,9 @@ public class TripServiceTest {
 				.withTrips(TO_SPAIN, TO_LONDON)
 				.build();
 
-		List<Trip> friendTrips  = tripService.getTripsByUser(friend, REGISTERED_USER);
+		given(tripDAO.findTripsBy(friend)).willReturn(friend.trips());
+
+		List<Trip> friendTrips  = tripService.getFriendTrips(friend, REGISTERED_USER);
 
 	    assertThat(friendTrips.size(), is(2));
 	}
@@ -52,16 +57,8 @@ public class TripServiceTest {
 				.withTrips(TO_SPAIN)
 				.build() ;
 
-		List<Trip> friendTrips  = tripService.getTripsByUser(friend, REGISTERED_USER);
+		List<Trip> friendTrips  = tripService.getFriendTrips(friend, REGISTERED_USER);
 
 		assertThat(friendTrips.size(), is(0));
-	}
-
-	private class TestableTripService extends TripService {
-
-		@Override
-		protected List<Trip> findTripsBy(User user) {
-			return user.trips();
-		}
 	}
 }
